@@ -4,6 +4,13 @@ const Tour = require('../models/tourModel');
 //   fs.readFileSync(`${__dirname}/../dev-data/data/tours-simple.json`),
 // );
 
+exports.aliasTopTours = (req, res, next) => {
+  req.query.limit = '5';
+  req.query.sort = '-ratingAverage,price';
+  req.query.fields = 'name,price,ratingAverage,summary,difficulty';
+  next();
+};
+
 exports.createTour = async (req, res) => {
   try {
     const newTour = await Tour.create(req.body);
@@ -22,9 +29,14 @@ exports.createTour = async (req, res) => {
   }
 };
 
-exports.getAllTours = async (req, res) => {
-  try {
-    const queryObj = { ...req.query };
+class APIFeatures {
+  constructor(query, queryString) {
+    this.query = query;
+    this.queryString = queryString;
+  }
+
+  filter(query, queryString) {
+    const queryObj = { ...this.queryString };
 
     const excludedFields = ['select', 'populate', 'limit', 'page', 'sort'];
     excludedFields.forEach((field) => delete queryObj[field]);
@@ -36,7 +48,27 @@ exports.getAllTours = async (req, res) => {
       (match) => `$${match}`,
     );
 
-    let query = Tour.find(JSON.parse(queryString));
+    this.query.find(JSON.parse(queryString));
+
+    return this;
+  }
+}
+
+exports.getAllTours = async (req, res) => {
+  try {
+    // const queryObj = { ...req.query };
+
+    // const excludedFields = ['select', 'populate', 'limit', 'page', 'sort'];
+    // excludedFields.forEach((field) => delete queryObj[field]);
+
+    // let queryString = JSON.stringify(queryObj);
+
+    // queryString = queryString.replace(
+    //   /\b(gte|gt|lte|lt)\b/g,
+    //   (match) => `$${match}`,
+    // );
+
+    // let query = Tour.find(JSON.parse(queryString));
 
     if (req.query.sort) {
       const sortBy = req.query.sort.split(',').join(' ');
@@ -63,7 +95,9 @@ exports.getAllTours = async (req, res) => {
       if (skip >= numTours) throw new Error('Page not found');
     }
 
-    const tours = await query;
+    const features = new APIFeatures(Tour.find(), req.query).filter().sort();
+
+    const tours = await features.query;
 
     res.status(200).json({
       status: 'success',

@@ -1,13 +1,22 @@
+/* eslint-disable import/no-useless-path-segments */
 const express = require('express');
-const useController = require('./../controllers/userController');
+const userController = require('./../controllers/userController');
+const authController = require('./../controllers/authController');
 
-router = express.Router();
+const router = express.Router();
 
-router.route('/').get(useController.getAllUsers).post(useController.createUser);
+router.post('/signup', authController.signup);
+router.post('/login', authController.login);
+
+router
+  .route('/')
+  .get(userController.getAllUsers)
+  .post(userController.createUser);
+
 router
   .route('/:id')
-  .get(useController.getUser)
-  .patch(useController.updateUser)
-  .delete(useController.deleteUser);
+  .get(userController.getUser)
+  .patch(userController.updateUser)
+  .delete(userController.deleteUser);
 
 module.exports = router;
